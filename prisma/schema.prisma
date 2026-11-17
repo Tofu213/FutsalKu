@@ -1,0 +1,172 @@
+// Skema database Sistem Informasi Penyewaan Lapangan Futsal
+// Diselaraskan dengan model OOAD pada Laporan UTS APSI (Bab 6):
+//   class diagram  -> User (+ peran), Lapangan, Booking, Pembayaran, Nota, LaporanPendapatan
+//   use case       -> UC-01..UC-07
+// LaporanPendapatan tidak disimpan sebagai tabel: laporan dihitung dari Pembayaran per periode.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Peran pengguna = subclass User pada class diagram (Pelanggan, Kasir, Owner)
+enum Role {
+  OWNER
+  KASIR
+  PELANGGAN
+}
+
+enum StatusBooking {
+  MENUNGGU_PEMBAYARAN
+  TERKONFIRMASI
+  LUNAS
+  SELESAI
+  DIBATALKAN
+}
+
+// UC-03 (online oleh pelanggan) dan UC-05 (walk-in oleh kasir)
+enum AsalBooking {
+  ONLINE
+  WALK_IN
+}
+
+// Pembayaran DP saat booking (UC-03) dan pelunasan oleh kasir (UC-05)
+enum JenisPembayaran {
+  DP
+  PELUNASAN
+}
+
+// UC-04: perlakuan DP saat pembatalan, mengikuti aturan yang ditetapkan Owner
+enum PerlakuanDp {
+  HANGUS
+  DIKEMBALIKAN
+}
+
+model User {
+  id        String   @id @default(cuid())
+  nama      String
+  noHp      String   @unique
+  email     String?
+  password  String // hash bcrypt (NFR-01 Security)
+  role      Role     @default(PELANGGAN)
+  createdAt DateTime @default(now())
+
+  bookings            Booking[]
+  pembayaranDicatat   Pembayaran[]
+}
+
+model Lapangan {
+  id          String @id @default(cuid())
+  nama        String
+  jenis       String // Indoor / Outdoor / Synthetic Grass, dsb.
+  hargaPerJam Int
+  aktif       Boolean @default(true)
+
+  bookings Booking[]
+  blokir   JadwalBlokir[]
+}
+
+// UC-03/04/05. Pencegahan double booking di level basis data lewat slotKey (unik):
+// diganti oleh tabel SlotBooking (satu baris per jam) agar booking multi-jam ikut terlindungi;
+// baris slot dihapus saat booking dibatalkan sehingga slot dapat dipesan lagi.
+model Booking {
+  id         String   @id @default(cuid())
+  lapangan   Lapangan @relation(fields: [lapanganId], references: [id])
+  lapanganId String
+
+  // Pelanggan online wajib punya akun; booking walk-in (UC-05) memakai nama/HP tamu
+  user       User?   @relation(fields: [userId], references: [id])
+  userId     String?
+  namaTamu   String?
+  noHpTamu   String?
+  asal       AsalBooking @default(ONLINE)
+
+  tanggal    String @db.VarChar(10) // format YYYY-MM-DD
+  jamMulai   Int // 0-23
+  jumlahJam  Int    @default(1)
+  totalHarga Int
+  dpDibayar  Int    @default(0) // DP yang dibayar saat booking
+  status     StatusBooking @default(MENUNGGU_PEMBAYARAN)
+  catatan    String?
+
+  // UC-04: diisi saat dibatalkan
+  perlakuanDp  PerlakuanDp?
+  dibatalkanAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  slots      SlotBooking[]
+  pembayaran Pembayaran[]
+  nota       Nota?
+
+  @@index([lapanganId, tanggal])
+  @@index([userId])
+}
+
+// Satu baris per jam yang dipesan. Unik per (lapangan, tanggal, jam): inilah penegak
+// FR-03 (pencegahan double booking) untuk booking berdurasi lebih dari 1 jam.
+// Baris dihapus ketika booking dibatalkan (UC-04 "melepaskan slot").
+model SlotBooking {
+  id         String  @id @default(cuid())
+  booking    Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  bookingId  String
+  lapanganId String
+  tanggal    String  @db.VarChar(10)
+  jam        Int
+
+  @@unique([lapanganId, tanggal, jam])
+  @@index([bookingId])
+}
+
+// Kelas Pembayaran (satu booking memiliki 1..* pembayaran: DP lalu pelunasan)
+model Pembayaran {
+  id        String          @id @default(cuid())
+  booking   Booking         @relation(fields: [bookingId], references: [id])
+  bookingId String
+  jenis     JenisPembayaran
+  nominal   Int
+  metode    String // QRIS / Transfer / Tunai
+  waktu     DateTime        @default(now())
+
+  // jejak siapa yang mencatat (kasir untuk pelunasan; null untuk DP online)
+  dicatatOleh   User?   @relation(fields: [dicatatOlehId], references: [id])
+  dicatatOlehId String?
+
+  @@index([waktu])
+  @@index([bookingId])
+}
+
+// Kelas Nota (UC-05): satu booking memiliki 0..1 nota digital bernomor unik
+model Nota {
+  id            String   @id @default(cuid())
+  noNota        String   @unique
+  tanggalTerbit DateTime @default(now())
+  booking       Booking  @relation(fields: [bookingId], references: [id])
+  bookingId     String   @unique
+}
+
+// UC-06 (Blokir Jadwal): slot yang ditutup Owner, mis. untuk perawatan. Satu baris per jam.
+model JadwalBlokir {
+  id         String   @id @default(cuid())
+  lapangan   Lapangan @relation(fields: [lapanganId], references: [id])
+  lapanganId String
+  tanggal    String   @db.VarChar(10)
+  jam        Int
+  alasan     String?
+  createdAt  DateTime @default(now())
+
+  @@unique([lapanganId, tanggal, jam])
+}
+
+// Aturan yang ditetapkan Owner (UC-03: persentase DP, UC-04: perlakuan DP saat batal).
+// Hanya satu baris (id = 1).
+model Pengaturan {
+  id              Int         @id @default(1)
+  dpPersen        Int         @default(50)
+  perlakuanDpBatal PerlakuanDp @default(HANGUS)
+}
