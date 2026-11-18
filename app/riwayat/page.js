@@ -3,18 +3,15 @@
 import Link from "next/link";
 import { batasBayarDp } from "@/lib/konstanta";
 import { useEffect, useState } from "react";
+import { CalendarPlus, Clock, Receipt, XCircle } from "lucide-react";
+import StatusBadge from "@/components/StatusBadge";
+import { useUmpan } from "@/components/Umpan";
 
-const LABEL_STATUS = {
-  MENUNGGU_PEMBAYARAN: { text: "Menunggu Pembayaran", cls: "status-menunggu" },
-  TERKONFIRMASI: { text: "Terkonfirmasi (DP)", cls: "status-terkonfirmasi" },
-  LUNAS: { text: "Lunas", cls: "status-lunas" },
-  SELESAI: { text: "Selesai", cls: "status-selesai" },
-  DIBATALKAN: { text: "Dibatalkan", cls: "status-batal" },
-};
 
 export default function RiwayatPage() {
   const [bookings, setBookings] = useState(null);
   const [error, setError] = useState("");
+  const { toast, konfirmasi } = useUmpan();
 
   function muatData() {
     fetch("/api/booking")
@@ -30,13 +27,26 @@ export default function RiwayatPage() {
     const infoDp = aturan?.perlakuanDpBatal
       ? ` DP akan ${aturan.perlakuanDpBatal === "HANGUS" ? "hangus" : "dikembalikan"} sesuai aturan.`
       : "";
-    if (!confirm("Yakin ingin membatalkan booking ini?" + infoDp)) return;
+    const ok = await konfirmasi({
+      judul: "Batalkan booking ini?",
+      isi: "Slot akan dilepas untuk pelanggan lain." + infoDp,
+      tombol: "Ya, batalkan",
+      batal: "Tidak jadi",
+      bahaya: true,
+    });
+    if (!ok) return;
     const res = await fetch(`/api/booking/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "batal" }),
     });
-    if (res.ok) muatData();
+    const d = await res.json().catch(() => ({}));
+    if (res.ok) {
+      toast("Booking dibatalkan.");
+      muatData();
+    } else {
+      toast(d.error || "Booking gagal dibatalkan.", "galat");
+    }
   }
 
   if (error) return <p className="pesan-galat">{error}</p>;
@@ -50,7 +60,8 @@ export default function RiwayatPage() {
     <div className="max-w-3xl mx-auto">
       <div className="flex flex-wrap items-end justify-between gap-3 mb-6">
         <h1 className="judul-halaman">Riwayat booking</h1>
-        <Link href="/booking" className="btn-primary btn-kecil">
+        <Link href="/booking" className="btn-primary btn-kecil gap-1.5">
+          <CalendarPlus className="w-4 h-4" aria-hidden="true" />
           Booking baru
         </Link>
       </div>
@@ -65,7 +76,6 @@ export default function RiwayatPage() {
       ) : (
         <div className="space-y-3">
           {bookings.map((b) => {
-            const status = LABEL_STATUS[b.status];
             const [, bln, tgl] = b.tanggal.split("-");
             const batal = b.status === "DIBATALKAN";
             return (
@@ -79,9 +89,10 @@ export default function RiwayatPage() {
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <p className="font-display text-2xl font-semibold leading-tight">{b.lapangan.nama}</p>
-                    <span className={`badge ${status.cls}`}>{status.text}</span>
+                    <StatusBadge status={b.status} />
                   </div>
-                  <p className="text-sm text-redup mt-1">
+                  <p className="text-sm text-redup mt-1 inline-flex items-center gap-1.5">
+                    <Clock className="w-4 h-4" aria-hidden="true" />
                     {jamStr(b.jamMulai)} sampai {jamStr(b.jamMulai + b.jumlahJam)} ({b.jumlahJam} jam)
                   </p>
                   <p className="text-sm mt-2">
@@ -102,12 +113,14 @@ export default function RiwayatPage() {
                   )}
                   <div className="flex flex-wrap items-center gap-4 mt-3 empty:hidden">
                     {b.nota && (
-                      <Link href={`/nota/${b.id}`} className="text-sm font-semibold text-rompi-400 hover:text-rompi-300">
+                      <Link href={`/nota/${b.id}`} className="inline-flex items-center gap-1.5 text-sm font-semibold text-rompi-400 hover:text-rompi-300">
+                        <Receipt className="w-4 h-4" aria-hidden="true" />
                         Lihat nota {b.nota.noNota}
                       </Link>
                     )}
                     {["MENUNGGU_PEMBAYARAN", "TERKONFIRMASI"].includes(b.status) && (
-                      <button onClick={() => batalkan(b.id)} className="btn-bahaya">
+                      <button onClick={() => batalkan(b.id)} className="btn-bahaya inline-flex items-center gap-1">
+                        <XCircle className="w-3.5 h-3.5" aria-hidden="true" />
                         Batalkan booking
                       </button>
                     )}

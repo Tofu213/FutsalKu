@@ -3,6 +3,9 @@
 import { BATAS_DP_JAM } from "@/lib/konstanta";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { AnimatePresence, motion } from "framer-motion";
+import { CalendarDays, CheckCircle2, Clock, Hourglass, MapPin, Wallet } from "lucide-react";
+import { useUmpan } from "@/components/Umpan";
 
 const JAM_OPERASIONAL = Array.from({ length: 16 }, (_, i) => i + 8); // 08:00 - 23:00
 
@@ -16,6 +19,7 @@ export default function BookingPage() {
 
 function BookingForm() {
   const router = useRouter();
+  const { toast } = useUmpan();
   const searchParams = useSearchParams();
 
   const [lapanganList, setLapanganList] = useState([]);
@@ -84,6 +88,7 @@ function BookingForm() {
     setLoading(false);
     if (!res.ok) {
       setError(data.error || "Gagal membuat booking.");
+      toast(data.error || "Gagal membuat booking.", "galat");
       // refresh ketersediaan karena kemungkinan slot baru saja terisi (FR-15)
       fetch(`/api/ketersediaan?lapanganId=${lapanganId}&tanggal=${tanggal}`)
         .then((r) => r.json())
@@ -91,6 +96,8 @@ function BookingForm() {
       return;
     }
     setSukses(data);
+    toast("Booking dibuat. Bayar DP ke Kasir sebelum batas waktu.");
+    window.scrollTo({ top: 0, behavior: "smooth" });
     setJamTerisi((prev) => [...prev, ...Array.from({ length: jumlahJam }, (_, i) => jamMulai + i)]);
     setJamMulai(null);
   }
@@ -103,8 +110,23 @@ function BookingForm() {
     <div>
       <h1 className="judul-halaman mb-6">Booking lapangan</h1>
 
+      <AnimatePresence>
       {sukses && (
-        <div className="card mb-6 !border-emerald-400/50 bg-emerald-400/5">
+        <motion.div
+          initial={{ opacity: 0, y: -12, height: 0 }}
+          animate={{ opacity: 1, y: 0, height: "auto" }}
+          className="overflow-hidden"
+        >
+        <div className="card mb-6 !border-emerald-400/50 bg-emerald-400/5 flex gap-4">
+          <motion.span
+            initial={{ scale: 0.4, rotate: -20 }}
+            animate={{ scale: 1, rotate: 0 }}
+            transition={{ type: "spring", stiffness: 380, damping: 14, delay: 0.15 }}
+            className="shrink-0 w-12 h-12 rounded-full bg-emerald-400/15 text-emerald-300 flex items-center justify-center"
+          >
+            <CheckCircle2 className="w-7 h-7" aria-hidden="true" />
+          </motion.span>
+          <div>
           <p className="font-display text-2xl font-semibold text-emerald-300">
             Booking dibuat, slot sudah dikunci untuk Anda.
           </p>
@@ -117,8 +139,11 @@ function BookingForm() {
           <button className="btn-outline btn-kecil mt-4" onClick={() => router.push("/riwayat")}>
             Lihat riwayat booking
           </button>
+          </div>
         </div>
+        </motion.div>
       )}
+      </AnimatePresence>
 
       <div className="grid lg:grid-cols-[1fr_340px] gap-6 items-start">
         <div className="card space-y-6">
@@ -197,9 +222,10 @@ function BookingForm() {
                 const bentrok = slotBentrok(jam);
                 const aktif = dalamRentang(jam);
                 return (
-                  <button
+                  <motion.button
                     key={jam}
                     type="button"
+                    whileTap={bentrok ? undefined : { scale: 0.92 }}
                     disabled={bentrok && !aktif}
                     aria-pressed={jamMulai === jam}
                     onClick={() => !bentrok && setJamMulai(jam)}
@@ -212,7 +238,7 @@ function BookingForm() {
                     }`}
                   >
                     {jamStr(jam)}
-                  </button>
+                  </motion.button>
                 );
               })}
             </div>
@@ -223,15 +249,15 @@ function BookingForm() {
           <h2 className="font-display text-2xl font-semibold">Ringkasan</h2>
           <dl className="mt-4 space-y-2.5 text-sm">
             <div className="flex justify-between gap-3">
-              <dt className="text-redup">Lapangan</dt>
+              <dt className="text-redup inline-flex items-center gap-1.5"><MapPin className="w-4 h-4" aria-hidden="true" />Lapangan</dt>
               <dd className="text-right font-medium">{lapanganTerpilih?.nama ?? "-"}</dd>
             </div>
             <div className="flex justify-between gap-3">
-              <dt className="text-redup">Tanggal</dt>
+              <dt className="text-redup inline-flex items-center gap-1.5"><CalendarDays className="w-4 h-4" aria-hidden="true" />Tanggal</dt>
               <dd className="font-medium">{tanggal}</dd>
             </div>
             <div className="flex justify-between gap-3">
-              <dt className="text-redup">Jam</dt>
+              <dt className="text-redup inline-flex items-center gap-1.5"><Clock className="w-4 h-4" aria-hidden="true" />Jam</dt>
               <dd className="font-medium">
                 {jamMulai === null ? "Belum dipilih" : `${jamStr(jamMulai)} sampai ${jamStr(jamMulai + jumlahJam)}`}
               </dd>
@@ -242,8 +268,18 @@ function BookingForm() {
             </div>
           </dl>
           <div className="mt-4 rounded-xl bg-pitch-950/60 px-4 py-3">
-            <p className="text-sm text-redup">DP yang harus dibayar ({dpPersen}%)</p>
-            <p className="angka text-4xl text-bola leading-tight">{rp(dpMinimal)}</p>
+            <p className="text-sm text-redup inline-flex items-center gap-1.5">
+              <Wallet className="w-4 h-4" aria-hidden="true" />
+              DP yang harus dibayar ({dpPersen}%)
+            </p>
+            <motion.p
+              key={dpMinimal}
+              initial={{ opacity: 0.3, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="angka text-4xl text-bola leading-tight"
+            >
+              {rp(dpMinimal)}
+            </motion.p>
           </div>
 
           {error && <p className="pesan-galat mt-4">{error}</p>}
@@ -251,7 +287,8 @@ function BookingForm() {
           <button className="btn-primary w-full mt-4" onClick={handleBooking} disabled={loading || jamMulai === null}>
             {loading ? "Memproses..." : "Buat Booking"}
           </button>
-          <p className="text-xs text-redup mt-3">
+          <p className="text-xs text-redup mt-3 flex gap-1.5">
+            <Hourglass className="w-3.5 h-3.5 shrink-0 mt-px" aria-hidden="true" />
             DP dibayar ke Kasir paling lambat {BATAS_DP_JAM} jam setelah booking dibuat.
           </p>
         </aside>

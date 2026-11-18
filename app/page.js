@@ -2,13 +2,14 @@ import { prisma } from "@/lib/prisma";
 import { BATAS_DP_JAM } from "@/lib/konstanta";
 import Court, { warnaLantai } from "@/components/Court";
 import Link from "next/link";
+import { CalendarCheck, ChevronRight, Clock, Receipt, Wallet } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
 const LANGKAH = [
-  { judul: "Pilih slot", isi: "Tentukan lapangan, tanggal, dan jam mulai. Slot langsung dikunci atas nama Anda." },
-  { judul: "Bayar DP", isi: `Serahkan DP ke Kasir, lewat transfer atau di lokasi, paling lambat ${BATAS_DP_JAM} jam setelah booking.` },
-  { judul: "Main dan lunasi", isi: "Datang sesuai jadwal, lunasi sisanya di kasir, dan nota digital langsung terbit." },
+  { ikon: CalendarCheck, judul: "Pilih slot", isi: "Tentukan lapangan, tanggal, dan jam mulai. Slot langsung dikunci atas nama Anda." },
+  { ikon: Wallet, judul: "Bayar DP", isi: `Serahkan DP ke Kasir, lewat transfer atau di lokasi, paling lambat ${BATAS_DP_JAM} jam setelah booking.` },
+  { ikon: Receipt, judul: "Main dan lunasi", isi: "Datang sesuai jadwal, lunasi sisanya di kasir, dan nota digital langsung terbit." },
 ];
 
 export default async function HomePage() {
@@ -38,7 +39,8 @@ export default async function HomePage() {
               Booking sekarang
             </Link>
             {hargaTermurah !== null && (
-              <p className="text-sm text-redup">
+              <p className="text-sm text-redup inline-flex items-center gap-1.5 flex-wrap">
+                <Clock className="w-4 h-4" aria-hidden="true" />
                 Mulai <span className="angka text-xl text-bola">Rp{hargaTermurah.toLocaleString("id-ID")}</span> per jam
               </p>
             )}
@@ -75,8 +77,9 @@ export default async function HomePage() {
                       <span className="angka text-3xl text-bola">Rp{l.hargaPerJam.toLocaleString("id-ID")}</span>
                       <span className="text-sm text-redup"> /jam</span>
                     </p>
-                    <span className="text-sm font-semibold text-rompi-400 group-hover:text-rompi-300">
+                    <span className="inline-flex items-center text-sm font-semibold text-rompi-400 group-hover:text-rompi-300">
                       Lihat jadwal
+                      <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
                     </span>
                   </div>
                 </div>
@@ -91,7 +94,10 @@ export default async function HomePage() {
         <ol className="grid sm:grid-cols-3 gap-5">
           {LANGKAH.map((s, i) => (
             <li key={s.judul} className="border-t-2 border-rompi-500 pt-4">
-              <p className="angka text-5xl text-garis/25 leading-none">{i + 1}</p>
+              <div className="flex items-center justify-between">
+                <p className="angka text-5xl text-garis/25 leading-none">{i + 1}</p>
+                <s.ikon className="w-7 h-7 text-rompi-400" aria-hidden="true" />
+              </div>
               <h3 className="font-display text-2xl font-semibold mt-2">{s.judul}</h3>
               <p className="text-redup mt-1.5">{s.isi}</p>
             </li>

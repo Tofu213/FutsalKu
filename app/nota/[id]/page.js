@@ -2,6 +2,7 @@
 
 // UC-05: tampilan nota digital (dapat dicetak)
 import { useEffect, useState } from "react";
+import { Printer } from "lucide-react";
 
 const rp = (n) => "Rp" + Number(n || 0).toLocaleString("id-ID");
 const jamStr = (j) => String(j).padStart(2, "0") + ":00";
@@ -74,6 +75,7 @@ export default function NotaPage({ params }) {
         </p>
       </div>
       <button className="btn-outline w-full mt-5 print:hidden" onClick={() => window.print()}>
+        <Printer className="w-4 h-4 mr-2" aria-hidden="true" />
         Cetak nota
       </button>
     </div>

@@ -1,0 +1,48 @@
+[33mcommit eeb2b0262463f5bc65d54ffdd4b918c05aa96b0e[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m
+Author: nama kamu <email-github-kamu>
+Date:   Tue Nov 17 18:35:06 2026 +0700
+
+    Tampilan baru
+
+ .env.example                            |    3 [32m+[m
+ .gitignore                              |    7 [32m+[m
+ README.md                               |  112 [32m++[m
+ app/admin/page.js                       |  411 [32m+++++++[m
+ app/api/auth/login/route.js             |   40 [32m+[m
+ app/api/auth/logout/route.js            |    7 [32m+[m
+ app/api/auth/me/route.js                |    7 [32m+[m
+ app/api/auth/register/route.js          |   45 [32m+[m
+ app/api/blokir/[id]/route.js            |   13 [32m+[m
+ app/api/blokir/route.js                 |   49 [32m+[m
+ app/api/booking/[id]/pelunasan/route.js |   64 [32m++[m
+ app/api/booking/[id]/route.js           |  119 [32m++[m
+ app/api/booking/route.js                |  125 [32m+++[m
+ app/api/ketersediaan/route.js           |   30 [32m+[m
+ app/api/lapangan/[id]/route.js          |   29 [32m+[m
+ app/api/lapangan/route.js               |   30 [32m+[m
+ app/api/laporan/route.js                |   63 [32m++[m
+ app/api/pengaturan/route.js             |   27 [32m+[m
+ app/booking/page.js                     |  261 [32m+++++[m
+ app/globals.css                         |  154 [32m+++[m
+ app/layout.js                           |   22 [32m+[m
+ app/login/page.js                       |   90 [32m++[m
+ app/nota/[id]/page.js                   |   81 [32m++[m
+ app/page.js                             |  103 [32m++[m
+ app/register/page.js                    |   88 [32m++[m
+ app/riwayat/page.js                     |  123 [32m+++[m
+ components/Court.jsx                    |   35 [32m+[m
+ components/Navbar.jsx                   |   78 [32m++[m
+ jsconfig.json                           |    8 [32m+[m
+ lib/auth.js                             |   50 [32m+[m
+ lib/konstanta.js                        |   27 [32m+[m
+ lib/prisma.js                           |   14 [32m+[m
+ lib/util.js                             |   57 [32m+[m
+ middleware.js                           |   38 [32m+[m
+ next.config.js                          |    4 [32m+[m
+ package-lock.json                       | 1845 [32m+++++++++++++++++++++++++++++++[m
+ package.json                            |   30 [32m+[m
+ postcss.config.js                       |    6 [32m+[m
+ prisma/schema.prisma                    |  172 [32m+++[m
+ prisma/seed.js                          |   66 [32m++[m
+ tailwind.config.js                      |   42 [32m+[m
+ 41 files changed, 4575 insertions(+)
