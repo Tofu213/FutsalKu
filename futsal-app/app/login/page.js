@@ -41,43 +41,48 @@ function LoginForm() {
   }
 
   return (
-    <div className="max-w-sm mx-auto card">
-      <h1 className="text-xl font-bold mb-4">Masuk</h1>
-      <form onSubmit={handleSubmit} className="space-y-3">
-        <div>
-          <label className="text-sm text-gray-600">Nomor HP</label>
-          <input
-            className="input"
-            value={noHp}
-            onChange={(e) => setNoHp(e.target.value)}
-            placeholder="08xxxxxxxxxx"
-            required
-          />
-        </div>
-        <div>
-          <label className="text-sm text-gray-600">Password</label>
-          <input
-            className="input"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-        </div>
-        {error && <p className="text-sm text-red-600">{error}</p>}
-        <button className="btn-primary w-full" disabled={loading}>
-          {loading ? "Memproses..." : "Masuk"}
-        </button>
-      </form>
-      <p className="text-sm text-gray-500 mt-4">
+    <div className="max-w-md mx-auto">
+      <h1 className="judul-halaman mb-2">Masuk</h1>
+      <p className="text-redup mb-6">Masuk untuk melihat jadwal dan membuat booking.</p>
+      <div className="card">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="label" htmlFor="noHp">Nomor HP</label>
+            <input
+              id="noHp"
+              className="input"
+              inputMode="tel"
+              value={noHp}
+              onChange={(e) => setNoHp(e.target.value)}
+              placeholder="08xxxxxxxxxx"
+              required
+            />
+          </div>
+          <div>
+            <label className="label" htmlFor="password">Password</label>
+            <input
+              id="password"
+              className="input"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </div>
+          {error && <p className="pesan-galat">{error}</p>}
+          <button className="btn-primary w-full" disabled={loading}>
+            {loading ? "Memproses..." : "Masuk"}
+          </button>
+        </form>
+      </div>
+      <p className="text-sm text-redup mt-5">
         Belum punya akun?{" "}
-        <Link href="/register" className="text-lapangan-600 font-medium">
+        <Link href="/register" className="text-rompi-400 font-semibold hover:text-rompi-300">
           Daftar di sini
         </Link>
       </p>
-      <p className="text-xs text-gray-400 mt-3">
-        Akun demo Owner: <code>081200000001</code> / password{" "}
-        <code>owner123</code> (dibuat lewat{" "}
+      <p className="text-xs text-redup/70 mt-3">
+        Akun demo Owner: <code>081200000001</code> / password <code>owner123</code> (dibuat lewat{" "}
         <code>npm run seed</code>)
       </p>
     </div>

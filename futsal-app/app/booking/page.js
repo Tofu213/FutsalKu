@@ -3,6 +3,9 @@
 import { BATAS_DP_JAM } from "@/lib/konstanta";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { AnimatePresence, motion } from "framer-motion";
+import { CalendarDays, CheckCircle2, Clock, Hourglass, MapPin, Wallet } from "lucide-react";
+import { useUmpan } from "@/components/Umpan";
 
 const JAM_OPERASIONAL = Array.from({ length: 16 }, (_, i) => i + 8); // 08:00 - 23:00
 
@@ -16,6 +19,7 @@ export default function BookingPage() {
 
 function BookingForm() {
   const router = useRouter();
+  const { toast } = useUmpan();
   const searchParams = useSearchParams();
 
   const [lapanganList, setLapanganList] = useState([]);
@@ -84,6 +88,7 @@ function BookingForm() {
     setLoading(false);
     if (!res.ok) {
       setError(data.error || "Gagal membuat booking.");
+      toast(data.error || "Gagal membuat booking.", "galat");
       // refresh ketersediaan karena kemungkinan slot baru saja terisi (FR-15)
       fetch(`/api/ketersediaan?lapanganId=${lapanganId}&tanggal=${tanggal}`)
         .then((r) => r.json())
@@ -91,108 +96,202 @@ function BookingForm() {
       return;
     }
     setSukses(data);
+    toast("Booking dibuat. Bayar DP ke Kasir sebelum batas waktu.");
+    window.scrollTo({ top: 0, behavior: "smooth" });
     setJamTerisi((prev) => [...prev, ...Array.from({ length: jumlahJam }, (_, i) => jamMulai + i)]);
     setJamMulai(null);
   }
 
+  const rp = (n) => "Rp" + n.toLocaleString("id-ID");
+  const jamStr = (j) => String(j).padStart(2, "0") + ".00";
+  const dalamRentang = (jam) => jamMulai !== null && jam >= jamMulai && jam < jamMulai + jumlahJam;
+
   return (
-    <div className="max-w-xl mx-auto">
-      <h1 className="text-xl font-bold mb-4">Booking Lapangan</h1>
+    <div>
+      <h1 className="judul-halaman mb-6">Booking lapangan</h1>
 
+      <AnimatePresence>
       {sukses && (
-        <div className="card mb-4 border-lapangan-500">
-          <p className="font-semibold text-lapangan-700">Booking dibuat, slot sudah dikunci untuk Anda.</p>
-          <p className="text-sm text-gray-600 mt-1">
-            Status: <strong>Menunggu Pembayaran</strong>. Bayar DP Rp
-            {(sukses.dpHarusDibayar ?? 0).toLocaleString("id-ID")} ke Kasir (transfer atau di lokasi) paling lambat{" "}
-            {BATAS_DP_JAM} jam dari sekarang. Setelah Kasir mengonfirmasi, status berubah menjadi Terkonfirmasi.
-            Jika DP tidak dibayar dalam batas waktu, booking dibatalkan otomatis dan slot dilepas.
+        <motion.div
+          initial={{ opacity: 0, y: -12, height: 0 }}
+          animate={{ opacity: 1, y: 0, height: "auto" }}
+          className="overflow-hidden"
+        >
+        <div className="card mb-6 !border-emerald-400/50 bg-emerald-400/5 flex gap-4">
+          <motion.span
+            initial={{ scale: 0.4, rotate: -20 }}
+            animate={{ scale: 1, rotate: 0 }}
+            transition={{ type: "spring", stiffness: 380, damping: 14, delay: 0.15 }}
+            className="shrink-0 w-12 h-12 rounded-full bg-emerald-400/15 text-emerald-300 flex items-center justify-center"
+          >
+            <CheckCircle2 className="w-7 h-7" aria-hidden="true" />
+          </motion.span>
+          <div>
+          <p className="font-display text-2xl font-semibold text-emerald-300">
+            Booking dibuat, slot sudah dikunci untuk Anda.
           </p>
-          <button className="btn-outline mt-3 text-sm" onClick={() => router.push("/riwayat")}>
-            Lihat Riwayat Booking
+          <p className="text-sm text-garis/85 mt-2 max-w-2xl">
+            Status: <strong>Menunggu Pembayaran</strong>. Bayar DP {rp(sukses.dpHarusDibayar ?? 0)} ke Kasir (transfer
+            atau di lokasi) paling lambat {BATAS_DP_JAM} jam dari sekarang. Setelah Kasir mengonfirmasi, status berubah
+            menjadi Terkonfirmasi. Jika DP tidak dibayar dalam batas waktu, booking dibatalkan otomatis dan slot
+            dilepas.
+          </p>
+          <button className="btn-outline btn-kecil mt-4" onClick={() => router.push("/riwayat")}>
+            Lihat riwayat booking
           </button>
+          </div>
         </div>
+        </motion.div>
       )}
+      </AnimatePresence>
 
-      <div className="card space-y-4">
-        <div>
-          <label className="text-sm text-gray-600">Pilih Lapangan</label>
-          <select className="input" value={lapanganId} onChange={(e) => setLapanganId(e.target.value)}>
-            {lapanganList.map((l) => (
-              <option key={l.id} value={l.id}>
-                {l.nama} — Rp{l.hargaPerJam.toLocaleString("id-ID")}/jam
-              </option>
-            ))}
-          </select>
-        </div>
+      <div className="grid lg:grid-cols-[1fr_340px] gap-6 items-start">
+        <div className="card space-y-6">
+          <div>
+            <p className="label">Lapangan</p>
+            <div className="grid sm:grid-cols-3 gap-2">
+              {lapanganList.map((l) => {
+                const dipilih = l.id === lapanganId;
+                return (
+                  <button
+                    key={l.id}
+                    type="button"
+                    aria-pressed={dipilih}
+                    onClick={() => setLapanganId(l.id)}
+                    className={`text-left rounded-xl border px-3.5 py-3 transition-colors ${
+                      dipilih ? "border-bola bg-bola/10" : "border-garis/20 hover:border-garis/50"
+                    }`}
+                  >
+                    <span className="block font-semibold leading-tight">{l.nama}</span>
+                    <span className="block text-sm text-redup mt-1">{rp(l.hargaPerJam)} /jam</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
-        <div>
-          <label className="text-sm text-gray-600">Tanggal</label>
-          <input
-            type="date"
-            className="input"
-            value={tanggal}
-            min={new Date().toISOString().slice(0, 10)}
-            onChange={(e) => setTanggal(e.target.value)}
-          />
-        </div>
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div>
+              <label className="label" htmlFor="tanggal">Tanggal</label>
+              <input
+                id="tanggal"
+                type="date"
+                className="input"
+                value={tanggal}
+                min={new Date().toISOString().slice(0, 10)}
+                onChange={(e) => setTanggal(e.target.value)}
+              />
+            </div>
+            <div>
+              <p className="label">Durasi</p>
+              <div className="grid grid-cols-3 gap-2">
+                {[1, 2, 3].map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    aria-pressed={jumlahJam === n}
+                    onClick={() => setJumlahJam(n)}
+                    className={`rounded-xl border py-2.5 font-medium transition-colors ${
+                      jumlahJam === n ? "border-bola bg-bola/10" : "border-garis/20 hover:border-garis/50"
+                    }`}
+                  >
+                    {n} jam
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
 
-        <div>
-          <label className="text-sm text-gray-600">Durasi (jam)</label>
-          <select className="input" value={jumlahJam} onChange={(e) => setJumlahJam(Number(e.target.value))}>
-            {[1, 2, 3].map((n) => (
-              <option key={n} value={n}>
-                {n} jam
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label className="text-sm text-gray-600 block mb-2">
-            Pilih Jam Mulai (bentuk terisi = sudah dibooking)
-          </label>
-          <div className="grid grid-cols-4 gap-2">
-            {JAM_OPERASIONAL.map((jam) => {
-              const bentrok = slotBentrok(jam);
-              const aktif = jamMulai === jam;
-              return (
-                <button
-                  key={jam}
-                  type="button"
-                  disabled={bentrok}
-                  onClick={() => setJamMulai(jam)}
-                  className={`text-sm py-2 rounded-lg border ${
-                    bentrok
-                      ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed line-through"
-                      : aktif
-                      ? "bg-lapangan-600 text-white border-lapangan-600"
-                      : "border-gray-300 hover:border-lapangan-500"
-                  }`}
-                >
-                  {String(jam).padStart(2, "0")}:00
-                </button>
-              );
-            })}
+          <div>
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+              <p className="label !mb-0">Jam mulai</p>
+              <p className="flex items-center gap-4 text-xs text-redup">
+                <span className="flex items-center gap-1.5">
+                  <span className="w-3 h-3 rounded border border-garis/40" /> Kosong
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="w-3 h-3 rounded bg-rompi-500" /> Pilihan Anda
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="w-3 h-3 rounded border border-garis/15 slot-terisi" /> Tidak tersedia
+                </span>
+              </p>
+            </div>
+            <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
+              {JAM_OPERASIONAL.map((jam) => {
+                const bentrok = slotBentrok(jam);
+                const aktif = dalamRentang(jam);
+                return (
+                  <motion.button
+                    key={jam}
+                    type="button"
+                    whileTap={bentrok ? undefined : { scale: 0.92 }}
+                    disabled={bentrok && !aktif}
+                    aria-pressed={jamMulai === jam}
+                    onClick={() => !bentrok && setJamMulai(jam)}
+                    className={`angka text-lg py-2.5 rounded-xl border transition-colors ${
+                      aktif
+                        ? "bg-rompi-500 text-pitch-950 border-rompi-500"
+                        : bentrok
+                        ? "slot-terisi text-garis/30 border-garis/10 cursor-not-allowed"
+                        : "border-garis/25 hover:border-bola hover:text-bola"
+                    }`}
+                  >
+                    {jamStr(jam)}
+                  </motion.button>
+                );
+              })}
+            </div>
           </div>
         </div>
 
-        <div className="flex justify-between text-sm border-t pt-3">
-          <span className="text-gray-500">Total Biaya</span>
-          <span className="font-semibold">Rp{totalHarga.toLocaleString("id-ID")}</span>
-        </div>
-        <div className="flex justify-between text-sm">
-          <span className="text-gray-500">DP yang harus dibayar ({dpPersen}%)</span>
-          <span className="font-semibold text-lapangan-700">
-            Rp{dpMinimal.toLocaleString("id-ID")}
-          </span>
-        </div>
+        <aside className="card lg:sticky lg:top-24 !bg-pitch-700">
+          <h2 className="font-display text-2xl font-semibold">Ringkasan</h2>
+          <dl className="mt-4 space-y-2.5 text-sm">
+            <div className="flex justify-between gap-3">
+              <dt className="text-redup inline-flex items-center gap-1.5"><MapPin className="w-4 h-4" aria-hidden="true" />Lapangan</dt>
+              <dd className="text-right font-medium">{lapanganTerpilih?.nama ?? "-"}</dd>
+            </div>
+            <div className="flex justify-between gap-3">
+              <dt className="text-redup inline-flex items-center gap-1.5"><CalendarDays className="w-4 h-4" aria-hidden="true" />Tanggal</dt>
+              <dd className="font-medium">{tanggal}</dd>
+            </div>
+            <div className="flex justify-between gap-3">
+              <dt className="text-redup inline-flex items-center gap-1.5"><Clock className="w-4 h-4" aria-hidden="true" />Jam</dt>
+              <dd className="font-medium">
+                {jamMulai === null ? "Belum dipilih" : `${jamStr(jamMulai)} sampai ${jamStr(jamMulai + jumlahJam)}`}
+              </dd>
+            </div>
+            <div className="flex justify-between gap-3 border-t border-garis/15 pt-3">
+              <dt className="text-redup">Total biaya</dt>
+              <dd className="font-semibold">{rp(totalHarga)}</dd>
+            </div>
+          </dl>
+          <div className="mt-4 rounded-xl bg-pitch-950/60 px-4 py-3">
+            <p className="text-sm text-redup inline-flex items-center gap-1.5">
+              <Wallet className="w-4 h-4" aria-hidden="true" />
+              DP yang harus dibayar ({dpPersen}%)
+            </p>
+            <motion.p
+              key={dpMinimal}
+              initial={{ opacity: 0.3, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="angka text-4xl text-bola leading-tight"
+            >
+              {rp(dpMinimal)}
+            </motion.p>
+          </div>
 
-        {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p className="pesan-galat mt-4">{error}</p>}
 
-        <button className="btn-primary w-full" onClick={handleBooking} disabled={loading || jamMulai === null}>
-          {loading ? "Memproses..." : "Buat Booking"}
-        </button>
+          <button className="btn-primary w-full mt-4" onClick={handleBooking} disabled={loading || jamMulai === null}>
+            {loading ? "Memproses..." : "Buat Booking"}
+          </button>
+          <p className="text-xs text-redup mt-3 flex gap-1.5">
+            <Hourglass className="w-3.5 h-3.5 shrink-0 mt-px" aria-hidden="true" />
+            DP dibayar ke Kasir paling lambat {BATAS_DP_JAM} jam setelah booking dibuat.
+          </p>
+        </aside>
       </div>
     </div>
   );

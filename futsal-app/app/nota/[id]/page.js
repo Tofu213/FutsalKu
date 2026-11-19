@@ -2,6 +2,7 @@
 
 // UC-05: tampilan nota digital (dapat dicetak)
 import { useEffect, useState } from "react";
+import { Printer } from "lucide-react";
 
 const rp = (n) => "Rp" + Number(n || 0).toLocaleString("id-ID");
 const jamStr = (j) => String(j).padStart(2, "0") + ":00";
@@ -16,41 +17,67 @@ export default function NotaPage({ params }) {
       .then(({ ok, d }) => (ok ? setB(d) : setError(d.error || "Gagal memuat nota.")));
   }, [params.id]);
 
-  if (error) return <p className="text-red-600">{error}</p>;
-  if (!b) return <p className="text-gray-500">Memuat nota...</p>;
-  if (!b.nota) return <p className="text-gray-600">Nota belum terbit. Nota terbit setelah pelunasan dicatat.</p>;
+  if (error) return <p className="pesan-galat max-w-md mx-auto">{error}</p>;
+  if (!b) return <p className="text-redup">Memuat nota...</p>;
+  if (!b.nota)
+    return (
+      <p className="pesan-info max-w-md mx-auto">Nota belum terbit. Nota terbit setelah pelunasan dicatat.</p>
+    );
 
   const total = b.pembayaran.reduce((s, p) => s + p.nominal, 0);
   const nama = b.user?.nama ?? `${b.namaTamu} (walk-in)`;
+  const baris = "flex justify-between gap-4";
 
   return (
-    <div className="max-w-md mx-auto card space-y-3 text-sm">
-      <div className="text-center">
-        <h1 className="text-lg font-bold">NOTA SEWA LAPANGAN FUTSAL</h1>
-        <p className="text-gray-500">{b.nota.noNota}</p>
-        <p className="text-gray-500">
-          Terbit: {new Date(b.nota.tanggalTerbit).toLocaleString("id-ID", { timeZone: "Asia/Jakarta" })} WIB
+    <div className="max-w-md mx-auto">
+      <div className="bg-white text-gray-900 rounded-2xl p-6 sm:p-8 text-sm shadow-2xl shadow-black/30 print:shadow-none print:p-0">
+        <div className="flex items-start justify-between gap-4 border-b-2 border-dashed border-gray-300 pb-4">
+          <div>
+            <p className="font-display text-3xl font-bold leading-none">FutsalKu</p>
+            <h1 className="font-sans text-sm text-gray-500 mt-1">Nota sewa lapangan futsal</h1>
+          </div>
+          <span className="font-display text-xl font-bold border-2 border-emerald-600 text-emerald-700 rounded-md px-2.5 py-0.5 -rotate-3">
+            LUNAS
+          </span>
+        </div>
+
+        <dl className="py-4 space-y-1.5 border-b border-gray-200">
+          <div className={baris}><dt className="text-gray-500">No. nota</dt><dd className="font-semibold">{b.nota.noNota}</dd></div>
+          <div className={baris}>
+            <dt className="text-gray-500">Terbit</dt>
+            <dd>{new Date(b.nota.tanggalTerbit).toLocaleString("id-ID", { timeZone: "Asia/Jakarta" })} WIB</dd>
+          </div>
+          <div className={baris}><dt className="text-gray-500">Pelanggan</dt><dd className="font-semibold">{nama}</dd></div>
+          <div className={baris}><dt className="text-gray-500">Lapangan</dt><dd>{b.lapangan.nama}</dd></div>
+          <div className={baris}><dt className="text-gray-500">Tanggal</dt><dd>{b.tanggal}</dd></div>
+          <div className={baris}>
+            <dt className="text-gray-500">Jam</dt>
+            <dd>{jamStr(b.jamMulai)} - {jamStr(b.jamMulai + b.jumlahJam)} ({b.jumlahJam} jam)</dd>
+          </div>
+        </dl>
+
+        <div className="py-4 space-y-1.5">
+          <div className={baris}><span>Total biaya</span><strong>{rp(b.totalHarga)}</strong></div>
+          {b.pembayaran.map((p) => (
+            <div key={p.id} className={`${baris} text-gray-600`}>
+              <span>{p.jenis === "DP" ? "DP" : "Pelunasan"} ({p.metode})</span>
+              <span>{rp(p.nominal)}</span>
+            </div>
+          ))}
+          <div className={`${baris} border-t border-gray-200 pt-2 items-baseline`}>
+            <span>Total dibayar</span>
+            <strong className="font-display text-2xl">{rp(total)}</strong>
+          </div>
+          <div className={baris}><span>Sisa</span><strong>{rp(b.totalHarga - total)}</strong></div>
+        </div>
+        <p className="text-center text-xs text-gray-500 border-t-2 border-dashed border-gray-300 pt-4">
+          Terima kasih sudah bermain di FutsalKu.
         </p>
       </div>
-      <div className="border-t pt-3 space-y-1">
-        <p>Pelanggan: <strong>{nama}</strong></p>
-        <p>Lapangan: {b.lapangan.nama}</p>
-        <p>Tanggal: {b.tanggal}</p>
-        <p>Jam: {jamStr(b.jamMulai)} - {jamStr(b.jamMulai + b.jumlahJam)} ({b.jumlahJam} jam)</p>
-      </div>
-      <div className="border-t pt-3 space-y-1">
-        <div className="flex justify-between"><span>Total biaya</span><strong>{rp(b.totalHarga)}</strong></div>
-        {b.pembayaran.map((p) => (
-          <div key={p.id} className="flex justify-between text-gray-600">
-            <span>{p.jenis === "DP" ? "DP" : "Pelunasan"} ({p.metode})</span>
-            <span>{rp(p.nominal)}</span>
-          </div>
-        ))}
-        <div className="flex justify-between border-t pt-1"><span>Total dibayar</span><strong>{rp(total)}</strong></div>
-        <div className="flex justify-between"><span>Sisa</span><strong>{rp(b.totalHarga - total)}</strong></div>
-        <p className="text-center font-semibold text-green-700 pt-1">LUNAS</p>
-      </div>
-      <button className="btn-outline w-full print:hidden" onClick={() => window.print()}>Cetak nota</button>
+      <button className="btn-outline w-full mt-5 print:hidden" onClick={() => window.print()}>
+        <Printer className="w-4 h-4 mr-2" aria-hidden="true" />
+        Cetak nota
+      </button>
     </div>
   );
 }

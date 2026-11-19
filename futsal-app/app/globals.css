@@ -1,28 +1,154 @@
+@import "@fontsource/barlow/400.css";
+@import "@fontsource/barlow/500.css";
+@import "@fontsource/barlow/600.css";
+@import "@fontsource/barlow-condensed/600.css";
+@import "@fontsource/barlow-condensed/700.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  color-scheme: dark;
+}
+
 body {
-  background-color: #f7f8f7;
-  color: #111827;
+  @apply bg-pitch-900 text-garis font-sans antialiased;
+  background-image: radial-gradient(1200px 500px at 80% -10%, rgba(31, 107, 84, 0.45), transparent 60%);
+  background-repeat: no-repeat;
+  min-height: 100vh;
 }
 
-.btn-primary {
-  @apply bg-lapangan-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-lapangan-700 transition disabled:opacity-50 disabled:cursor-not-allowed;
+h1,
+h2,
+h3 {
+  @apply font-display;
 }
 
-.btn-outline {
-  @apply border border-gray-300 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-100 transition;
+:focus-visible {
+  outline: 2px solid #ffd447;
+  outline-offset: 2px;
 }
 
-.card {
-  @apply bg-white rounded-xl shadow-sm border border-gray-200 p-5;
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center bg-rompi-500 text-pitch-950 px-5 py-2.5 rounded-full font-semibold
+      hover:bg-rompi-400 active:bg-rompi-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed;
+  }
+
+  .btn-outline {
+    @apply inline-flex items-center justify-center border border-garis/30 text-garis px-5 py-2.5 rounded-full font-medium
+      hover:bg-garis/10 hover:border-garis/60 transition-colors disabled:opacity-40;
+  }
+
+  .btn-kecil {
+    @apply px-3 py-1.5 text-xs;
+  }
+
+  .btn-bahaya {
+    @apply text-xs font-medium text-red-300 hover:text-red-200 underline-offset-4 hover:underline;
+  }
+
+  .card {
+    @apply bg-pitch-800 border border-garis/10 rounded-2xl p-5;
+  }
+
+  .input {
+    @apply w-full bg-pitch-950/70 border border-garis/20 text-garis rounded-xl px-3.5 py-2.5 placeholder:text-redup/60
+      focus:outline-none focus:border-bola focus:ring-1 focus:ring-bola;
+  }
+
+  .label {
+    @apply block text-sm text-redup mb-1.5;
+  }
+
+  .judul-halaman {
+    @apply font-display text-4xl sm:text-5xl font-bold leading-none tracking-tight;
+  }
+
+  .judul-bagian {
+    @apply font-display text-2xl font-semibold tracking-tight;
+  }
+
+  .badge {
+    @apply inline-block text-xs font-semibold px-2.5 py-1 rounded-full whitespace-nowrap;
+  }
+
+  /* Status booking */
+  .status-menunggu {
+    @apply bg-bola/15 text-bola;
+  }
+  .status-terkonfirmasi {
+    @apply bg-sky-400/15 text-sky-300;
+  }
+  .status-lunas {
+    @apply bg-emerald-400/15 text-emerald-300;
+  }
+  .status-selesai {
+    @apply bg-garis/10 text-redup;
+  }
+  .status-batal {
+    @apply bg-red-400/15 text-red-300;
+  }
+
+  .pesan-galat {
+    @apply text-sm text-red-200 bg-red-500/10 border border-red-400/30 rounded-xl px-3.5 py-2.5;
+  }
+
+  .pesan-info {
+    @apply text-sm text-garis bg-bola/10 border border-bola/30 rounded-xl px-3.5 py-2.5;
+  }
+
+  .angka {
+    @apply font-display font-bold tabular-nums;
+  }
 }
 
-.input {
-  @apply w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-lapangan-500;
+/* Slot yang sudah terisi: arsiran diagonal seperti area terlarang */
+.slot-terisi {
+  background-image: repeating-linear-gradient(
+    135deg,
+    rgba(237, 246, 240, 0.07) 0 6px,
+    transparent 6px 12px
+  );
 }
 
-.badge {
-  @apply text-xs font-semibold px-2 py-1 rounded-full;
+/* Garis lapangan di hero digambar sekali saat halaman dibuka */
+.garis-lapangan * {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: gambar-garis 1.6s ease-out forwards;
+}
+.garis-lapangan *:nth-child(2) { animation-delay: 0.15s; }
+.garis-lapangan *:nth-child(3) { animation-delay: 0.3s; }
+.garis-lapangan *:nth-child(4) { animation-delay: 0.45s; }
+.garis-lapangan *:nth-child(5) { animation-delay: 0.45s; }
+.garis-lapangan *:nth-child(n + 6) { animation-delay: 0.6s; }
+
+@keyframes gambar-garis {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .garis-lapangan * {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Nota dicetak sebagai kertas putih */
+@media print {
+  :root {
+    color-scheme: light;
+  }
+  body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+  header,
+  footer {
+    display: none !important;
+  }
 }
